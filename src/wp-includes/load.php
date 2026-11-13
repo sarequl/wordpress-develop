@@ -828,8 +828,12 @@ function wp_using_ext_object_cache( $using = null ) {
  * Loads the secrets.php drop-in, if one exists, and records whether it left the
  * Secrets API's provider, store, and keyring overrides in a usable state.
  *
- * Runs once, before must-use plugins load, so that every interface a drop-in's
- * classes implement already exists and every plugin sees the drop-in's provider.
+ * Runs once, before must-use plugins load, so that every class a drop-in's classes
+ * extend already exists and every plugin sees the drop-in's provider.
+ *
+ * The drop-in sets its overrides in the `$wp_secrets_provider`, `$wp_secrets_store`
+ * and `$wp_secrets_keyring` globals. They are declared global before the require, so
+ * a plain assignment such as `$wp_secrets_keyring = new My_Keyring();` works.
  *
  * Sets `$GLOBALS['wp_secrets_dropin_loaded']` as soon as the file is found, whether
  * or not it then loads cleanly: wp_using_secrets_dropin() reports presence, not
@@ -837,18 +841,24 @@ function wp_using_ext_object_cache( $using = null ) {
  *
  * Sets `$GLOBALS['wp_secrets_dropin_broken']` when the require throws, or when any of
  * `$GLOBALS['wp_secrets_provider']`, `$GLOBALS['wp_secrets_store']`, or
- * `$GLOBALS['wp_secrets_keyring']` is set to something that does not implement its
- * interface. A global left unset is fine: a drop-in that overrides only the keyring
+ * `$GLOBALS['wp_secrets_keyring']` is set to something that does not extend its
+ * class. A global left unset is fine: a drop-in that overrides only the keyring
  * leaves the other two alone. Once the flag is set, every Secrets API operation
  * returns WP_Error for the rest of the request rather than falling back to the
  * default provider, so a broken drop-in reads as unreachable, never as absent.
  *
- * PHP treats a class that implements an interface but omits a required method as an
- * uncatchable fatal error, even inside the try/catch around the require. That case
+ * PHP treats a class that extends an abstract class but omits one of its abstract
+ * methods as an uncatchable fatal error, even inside the try/catch around the require. That case
  * cannot be intercepted from PHP code.
  *
  * @since 7.2.0
  * @access private
+ *
+ * @global bool                $wp_secrets_dropin_loaded Whether a secrets.php drop-in file was found.
+ * @global bool                $wp_secrets_dropin_broken Whether the drop-in failed to load or left an invalid override.
+ * @global WP_Secrets_Provider $wp_secrets_provider      Optional. Provider override set by the drop-in.
+ * @global WP_Secrets_Store    $wp_secrets_store         Optional. Store override set by the drop-in.
+ * @global WP_Secrets_Keyring  $wp_secrets_keyring       Optional. Keyring override set by the drop-in.
  */
 function wp_load_secrets_dropin(): void {
 	static $loaded = false;
@@ -866,6 +876,12 @@ function wp_load_secrets_dropin(): void {
 	}
 
 	$GLOBALS['wp_secrets_dropin_loaded'] = true;
+
+	/*
+	 * The drop-in is required inside this function. Declaring the overrides global
+	 * lets it set them as plain variables, as db.php does with $wpdb.
+	 */
+	global $wp_secrets_provider, $wp_secrets_store, $wp_secrets_keyring;
 
 	try {
 		require $dropin_path;
@@ -1360,6 +1376,138 @@ function wp_magic_quotes() {
 
 	// Force REQUEST to be GET + POST.
 	$_REQUEST = array_merge( $_GET, $_POST );
+}
+
+/**
+ * Reads a string from a `$_GET` input var.
+ *
+ * Input vars are slashed by wp_magic_quotes(), and a var that is expected to be a string
+ * can still be an array, as with `?s[]=1`. Passing such a value to a function that
+ * requires a string is a fatal error in PHP 8.
+ *
+ * @since 7.3.0
+ *
+ * @param string $name Name of the input var.
+ * @return string|null The unslashed value, or null if the input var is not set or is not a scalar.
+ */
+function wp_read_get_input_var_string( string $name ): ?string {
+	return _wp_read_input_var_string( $_GET, $name );
+}
+
+/**
+ * Reads a string from a `$_POST` input var.
+ *
+ * @since 7.3.0
+ *
+ * @see wp_read_get_input_var_string()
+ *
+ * @param string $name Name of the input var.
+ * @return string|null The unslashed value, or null if the input var is not set or is not a scalar.
+ */
+function wp_read_post_input_var_string( string $name ): ?string {
+	return _wp_read_input_var_string( $_POST, $name );
+}
+
+/**
+ * Reads a string from a `$_REQUEST` input var.
+ *
+ * @since 7.3.0
+ *
+ * @see wp_read_get_input_var_string()
+ *
+ * @param string $name Name of the input var.
+ * @return string|null The unslashed value, or null if the input var is not set or is not a scalar.
+ */
+function wp_read_request_input_var_string( string $name ): ?string {
+	return _wp_read_input_var_string( $_REQUEST, $name );
+}
+
+/**
+ * Reads an array of strings from a `$_GET` input var.
+ *
+ * Keys are kept. Values that are not scalars, such as nested arrays from `?ids[0][]=1`,
+ * are skipped, so every value in the result is a string.
+ *
+ * @since 7.3.0
+ *
+ * @param string $name Name of the input var.
+ * @return array<string|int, string>|null The unslashed values, or null if the input var is not set or is not an array.
+ */
+function wp_read_get_input_var_string_array( string $name ): ?array {
+	return _wp_read_input_var_string_array( $_GET, $name );
+}
+
+/**
+ * Reads an array of strings from a `$_POST` input var.
+ *
+ * @since 7.3.0
+ *
+ * @see wp_read_get_input_var_string_array()
+ *
+ * @param string $name Name of the input var.
+ * @return array<string|int, string>|null The unslashed values, or null if the input var is not set or is not an array.
+ */
+function wp_read_post_input_var_string_array( string $name ): ?array {
+	return _wp_read_input_var_string_array( $_POST, $name );
+}
+
+/**
+ * Reads an array of strings from a `$_REQUEST` input var.
+ *
+ * @since 7.3.0
+ *
+ * @see wp_read_get_input_var_string_array()
+ *
+ * @param string $name Name of the input var.
+ * @return array<string|int, string>|null The unslashed values, or null if the input var is not set or is not an array.
+ */
+function wp_read_request_input_var_string_array( string $name ): ?array {
+	return _wp_read_input_var_string_array( $_REQUEST, $name );
+}
+
+/**
+ * Reads a string from an input var array.
+ *
+ * Uses stripslashes() rather than wp_unslash() so that it works before formatting.php is loaded.
+ *
+ * @since 7.3.0
+ * @access private
+ *
+ * @param array<string|int, mixed> $input Input vars, such as `$_GET`.
+ * @param string                   $name  Name of the input var.
+ * @return string|null The unslashed value, or null if the input var is not set or is not a scalar.
+ */
+function _wp_read_input_var_string( array $input, string $name ): ?string {
+	if ( ! isset( $input[ $name ] ) || ! is_scalar( $input[ $name ] ) ) {
+		return null;
+	}
+
+	return stripslashes( (string) $input[ $name ] );
+}
+
+/**
+ * Reads an array of strings from an input var array.
+ *
+ * @since 7.3.0
+ * @access private
+ *
+ * @param array<string|int, mixed> $input Input vars, such as `$_GET`.
+ * @param string                   $name  Name of the input var.
+ * @return array<string|int, string>|null The unslashed values, or null if the input var is not set or is not an array.
+ */
+function _wp_read_input_var_string_array( array $input, string $name ): ?array {
+	if ( ! isset( $input[ $name ] ) || ! is_array( $input[ $name ] ) ) {
+		return null;
+	}
+
+	$values = array();
+	foreach ( $input[ $name ] as $key => $value ) {
+		if ( is_scalar( $value ) ) {
+			$values[ $key ] = stripslashes( (string) $value );
+		}
+	}
+
+	return $values;
 }
 
 /**
