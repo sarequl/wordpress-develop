@@ -1482,7 +1482,7 @@ function _wp_read_input_var_string( array $input, string $name ): ?string {
 		return null;
 	}
 
-	return stripslashes( (string) $input[ $name ] );
+	return (string) $input[ $name ];
 }
 
 /**
