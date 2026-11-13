@@ -525,39 +525,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: [ '7.4', '8.4' ]
-        db-version: [ '9.7', '12.3' ]
-        db-type: [ 'mysql', 'mariadb' ]
-        multisite: [ false ]
-
-        include:
-          # Include one multisite job for each database type.
-          - php: '8.4'
-            db-version: '9.7'
-            db-type: 'mysql'
-            multisite: true
-          - php: '8.4'
-            db-version: '12.3'
-            db-type: 'mariadb'
-            multisite: true
-          # Test with memcached.
-          - php: '8.4'
-            db-version: '9.7'
-            db-type: 'mysql'
-            multisite: true
-            memcached: true
-          # Run specific test groups once.
-          - php: '8.4'
-            db-version: '9.7'
-            db-type: 'mysql'
-            phpunit-test-groups: 'html-api-web-platform-tests'
-
-        exclude:
-          # Exclude PHP versions that are not supported by the database versions.
-          - db-type: 'mysql'
-            db-version: '12.3'
-          - db-type: 'mariadb'
-            db-version: '9.7'
+        # Test only: every supported PHP version, single site and multisite.
+        php: [ '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6' ]
+        db-version: [ '9.7' ]
+        db-type: [ 'mysql' ]
+        multisite: [ false, true ]
 
     with:
       php: ${{ matrix.php }}
