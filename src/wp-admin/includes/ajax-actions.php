@@ -233,7 +233,8 @@ function wp_ajax_autocomplete_user() {
 	$return = array();
 
 	// Obtain the search term, and short-circuit missing/invalid search term.
-	if ( ! isset( $_REQUEST['term'] ) || ! is_string( $_REQUEST['term'] ) ) {
+	$term = wp_read_request_input_var_string( 'term' );
+	if ( null === $term ) {
 		wp_die( 0 );
 	}
 	/*
@@ -241,7 +242,7 @@ function wp_ajax_autocomplete_user() {
 	 * term consisting only of asterisks would result in an empty search that
 	 * matches all users.
 	 */
-	$term = trim( sanitize_text_field( wp_unslash( $_REQUEST['term'] ) ), '*' );
+	$term = trim( sanitize_text_field( $term ), '*' );
 	if ( '' === $term ) {
 		wp_die( 0 );
 	}

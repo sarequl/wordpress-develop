@@ -75,7 +75,7 @@ class WP_MS_Sites_List_Table extends WP_List_Table {
 
 		$pagenum = $this->get_pagenum();
 
-		$s    = isset( $_REQUEST['s'] ) ? wp_unslash( trim( $_REQUEST['s'] ) ) : '';
+		$s    = trim( wp_read_request_input_var_string( 's' ) ?? '' );
 		$wild = '';
 		if ( str_contains( $s, '*' ) ) {
 			$wild = '*';
