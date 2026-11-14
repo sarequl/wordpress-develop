@@ -284,7 +284,7 @@ jobs:
       php: ${{ matrix.php }}
       db-type: ${{ matrix.db-type }}
       db-version: ${{ matrix.db-version }}
-      multisite: ${{ matrix.multisite }}
+      multisite: ${{ matrix.multisite || false }}
       memcached: ${{ matrix.memcached }}
       phpunit-config: ${{ matrix.multisite && 'tests/phpunit/multisite.xml' || 'phpunit.xml.dist' }}
       tests-domain: ${{ matrix.tests-domain }}
@@ -372,7 +372,7 @@ jobs:
       php: ${{ matrix.php }}
       db-type: ${{ matrix.db-type }}
       db-version: ${{ matrix.db-version }}
-      multisite: ${{ matrix.multisite }}
+      multisite: ${{ matrix.multisite || false }}
       memcached: ${{ matrix.memcached }}
       phpunit-config: ${{ matrix.multisite && 'tests/phpunit/multisite.xml' || 'phpunit.xml.dist' }}
       report: false
@@ -446,7 +446,7 @@ jobs:
       db-type: ${{ matrix.db-type }}
       db-version: ${{ matrix.db-version }}
       db-innovation: ${{ matrix.db-innovation }}
-      multisite: ${{ matrix.multisite }}
+      multisite: ${{ matrix.multisite || false }}
       memcached: ${{ matrix.memcached }}
       phpunit-config: ${{ matrix.multisite && 'tests/phpunit/multisite.xml' || 'phpunit.xml.dist' }}
       report: false
@@ -525,46 +525,126 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: [ '7.4', '8.4' ]
-        db-version: [ '9.7', '12.3' ]
-        db-type: [ 'mysql', 'mariadb' ]
-        multisite: [ false ]
-
+        # Test only: every database version WordPress tests, plus the memcached and port jobs.
         include:
-          # Include one multisite job for each database type.
-          - php: '8.4'
-            db-version: '9.7'
+          - php: '7.4'
             db-type: 'mysql'
-            multisite: true
-          - php: '8.4'
-            db-version: '12.3'
+            db-version: '5.7'
+          - php: '8.6'
+            db-type: 'mysql'
+            db-version: '5.7'
+          - php: '7.4'
+            db-type: 'mysql'
+            db-version: '8.0'
+          - php: '8.6'
+            db-type: 'mysql'
+            db-version: '8.0'
+          - php: '7.4'
+            db-type: 'mysql'
+            db-version: '8.4'
+          - php: '8.6'
+            db-type: 'mysql'
+            db-version: '8.4'
+          - php: '7.4'
+            db-type: 'mysql'
+            db-version: '9.7'
+          - php: '8.6'
+            db-type: 'mysql'
+            db-version: '9.7'
+          - php: '7.4'
             db-type: 'mariadb'
-            multisite: true
-          # Test with memcached.
-          - php: '8.4'
-            db-version: '9.7'
-            db-type: 'mysql'
-            multisite: true
-            memcached: true
-          # Run specific test groups once.
-          - php: '8.4'
-            db-version: '9.7'
-            db-type: 'mysql'
-            phpunit-test-groups: 'html-api-web-platform-tests'
-
-        exclude:
-          # Exclude PHP versions that are not supported by the database versions.
-          - db-type: 'mysql'
+            db-version: '5.5'
+          - php: '8.6'
+            db-type: 'mariadb'
+            db-version: '5.5'
+          - php: '7.4'
+            db-type: 'mariadb'
+            db-version: '10.3'
+          - php: '8.6'
+            db-type: 'mariadb'
+            db-version: '10.3'
+          - php: '7.4'
+            db-type: 'mariadb'
+            db-version: '10.5'
+          - php: '8.6'
+            db-type: 'mariadb'
+            db-version: '10.5'
+          - php: '7.4'
+            db-type: 'mariadb'
+            db-version: '10.6'
+          - php: '8.6'
+            db-type: 'mariadb'
+            db-version: '10.6'
+          - php: '7.4'
+            db-type: 'mariadb'
+            db-version: '10.11'
+          - php: '8.6'
+            db-type: 'mariadb'
+            db-version: '10.11'
+          - php: '7.4'
+            db-type: 'mariadb'
+            db-version: '11.4'
+          - php: '8.6'
+            db-type: 'mariadb'
+            db-version: '11.4'
+          - php: '7.4'
+            db-type: 'mariadb'
+            db-version: '11.8'
+          - php: '8.6'
+            db-type: 'mariadb'
+            db-version: '11.8'
+          - php: '7.4'
+            db-type: 'mariadb'
             db-version: '12.3'
-          - db-type: 'mariadb'
+          - php: '8.6'
+            db-type: 'mariadb'
+            db-version: '12.3'
+          - php: '8.6'
+            db-type: 'mysql'
+            db-version: '5.7'
+            multisite: true
+          - php: '8.6'
+            db-type: 'mysql'
             db-version: '9.7'
+            multisite: true
+          - php: '8.6'
+            db-type: 'mariadb'
+            db-version: '5.5'
+            multisite: true
+          - php: '8.6'
+            db-type: 'mariadb'
+            db-version: '12.3'
+            multisite: true
+          - php: '8.3'
+            db-type: 'mysql'
+            db-version: '8.4'
+            memcached: true
+          - php: '8.3'
+            db-type: 'mysql'
+            db-version: '8.4'
+            memcached: true
+            multisite: true
+          - php: '8.3'
+            db-type: 'mariadb'
+            db-version: '12.3'
+            memcached: true
+          - php: '8.4'
+            db-type: 'mysql'
+            db-version: '8.4'
+            tests-domain: 'example.org:8889'
+          - php: '8.4'
+            db-type: 'mysql'
+            db-version: '8.4'
+            tests-domain: 'example.org:8889'
+            multisite: true
 
     with:
       php: ${{ matrix.php }}
       db-version: ${{ matrix.db-version }}
       db-type: ${{ matrix.db-type }}
-      multisite: ${{ matrix.multisite }}
+      multisite: ${{ matrix.multisite || false }}
       memcached: ${{ matrix.memcached || false }}
+      tests-domain: ${{ matrix.tests-domain || 'example.org' }}
       phpunit-config: ${{ matrix.multisite && 'tests/phpunit/multisite.xml' || 'phpunit.xml.dist' }}
       phpunit-test-groups: ${{ matrix.phpunit-test-groups || '' }}
       gutenberg-artifact: ${{ needs.prepare-gutenberg.result != 'skipped' }}
